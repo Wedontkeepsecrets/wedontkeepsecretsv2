@@ -16,6 +16,12 @@ interface Business {
   description: string
   image: string
   priceRange: 1 | 2 | 3 | 4
+  openTime: string
+  closeTime: string
+  latitude: number
+  longitude: number
+  reviews?: any[]
+  photos?: string[]
 }
 
 interface SearchIntent {
@@ -70,6 +76,7 @@ export function useAISearch(businesses: Business[], query: string, intent: Searc
       if (intent.atmosphere?.length) {
         for (const atmosphere of intent.atmosphere) {
           if (atmosphere === "cozy") {
+            // Check for cozy indicators in description
             const cozyIndicators = ["family", "intimate", "small", "traditional", "home", "warm"]
             const hasCozyIndicators = cozyIndicators.some(
               (indicator) =>
@@ -102,6 +109,17 @@ export function useAISearch(businesses: Business[], query: string, intent: Searc
         }
       }
 
+      // Time context matching
+      if (intent.timeContext?.includes("brunch") || intent.timeContext?.includes("sunday")) {
+        // Check if open during brunch hours (assuming 9 AM - 2 PM)
+        const openHour = Number.parseInt(business.openTime.split(":")[0])
+        if (openHour <= 11) {
+          // Open by 11 AM for brunch
+          score += 0.15
+          reasons.push("Open for brunch hours")
+        }
+      }
+
       // Price range matching
       if (intent.priceRange) {
         if (intent.priceRange === "budget" && business.priceRange <= 2) {
@@ -117,6 +135,7 @@ export function useAISearch(businesses: Business[], query: string, intent: Searc
       const searchTerms = query.toLowerCase().split(" ")
       for (const term of searchTerms) {
         if (term.length > 2) {
+          // Skip short words
           if (
             business.name.toLowerCase().includes(term) ||
             business.description.toLowerCase().includes(term) ||
